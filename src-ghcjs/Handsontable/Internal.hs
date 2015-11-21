@@ -9,3 +9,6 @@ newtype Handsontable = Handsontable JSVal
 
 foreign import javascript unsafe
  "new HandsonTable($1,$2)" hst_newHandsontable :: Element -> Object -> IO Handsontable
+
+foreign import javascript unsafe
+  "Handsontable.helper.createSpreadsheetData($1,$2)" hst_createSpreadsheetData :: Int -> Int -> IO JSVal
