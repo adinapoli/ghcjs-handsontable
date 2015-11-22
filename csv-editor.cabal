@@ -28,7 +28,7 @@ library
 
   if impl(ghcjs)
     hs-source-dirs:    src-ghcjs
-    -- cpp-options:       -D__GHCJS__
+    cpp-options:       -DGHCJS_BROWSER
     build-depends:     ghcjs-base
                      , ghcjs-dom
                      , ghcjs-jquery

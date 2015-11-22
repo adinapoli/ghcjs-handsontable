@@ -1,12 +1,12 @@
 module Main where
 
 import Handsontable
+import GHCJS.DOM
 import GHCJS.DOM.Document
-import JavaScript.JQuery as J
 import Control.Monad
 
 main :: IO ()
-main = do
+main = runWebGUI $ \webView -> do
   putStrLn "CSV Editor demo!"
   randomData <- createSpreadsheetData 10 20
   let cfg = HandsonConfig {
@@ -16,7 +16,8 @@ main = do
           , hsn_colHeaders = Nothing
           , hsn_contextMenu = Nothing
           }
-  doc <- newDocument
+
+  (Just doc)  <- webViewGetDomDocument webView
   theEl <- getElementById doc "table-example"
   case theEl of
     Nothing -> return ()
