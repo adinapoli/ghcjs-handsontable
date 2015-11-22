@@ -12,8 +12,8 @@ main = runWebGUI $ \webView -> do
   let cfg = HandsonConfig {
             hsn_data = randomData
           , hsn_minSpareRows = Just 1
-          , hsn_rowHeaders = Nothing
-          , hsn_colHeaders = Nothing
+          , hsn_rowHeaders = Just True
+          , hsn_colHeaders = Just True
           , hsn_contextMenu = Nothing
           }
 
