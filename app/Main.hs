@@ -9,14 +9,7 @@ main :: IO ()
 main = runWebGUI $ \webView -> do
   putStrLn "CSV Editor demo!"
   randomData <- createSpreadsheetData 10 20
-  let cfg = HandsonConfig {
-            hsn_data = randomData
-          , hsn_minSpareRows = Just 1
-          , hsn_rowHeaders = Just True
-          , hsn_colHeaders = Just True
-          , hsn_contextMenu = Nothing
-          }
-
+  let cfg = newHandsonConfig randomData
   (Just doc)  <- webViewGetDomDocument webView
   theEl <- getElementById doc "table-example"
   case theEl of

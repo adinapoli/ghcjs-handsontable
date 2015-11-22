@@ -1,7 +1,17 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Handsontable where
+module Handsontable (
+    Row
+  , HandsonConfig
+  , createSpreadsheetData
+  , newHandsonTable
+  , newHandsonConfig
+  , minSpareRows
+  , rowHeaders
+  , colHeaders
+  , contextMenu
+  ) where
 
 import GHCJS.Types
 import GHCJS.Marshal
@@ -13,12 +23,20 @@ type Row = JSVal
 
 --------------------------------------------------------------------------------
 data HandsonConfig = HandsonConfig {
-    hsn_data :: [Row]
-  , hsn_minSpareRows :: Maybe Int
-  , hsn_rowHeaders :: Maybe Bool
-  , hsn_colHeaders :: Maybe Bool
-  , hsn_contextMenu :: Maybe Bool
+    _data :: [Row]
+  , minSpareRows :: Int
+  , rowHeaders   :: Bool
+  , colHeaders   :: Bool
+  , contextMenu  :: Bool
   }
+
+--------------------------------------------------------------------------------
+defaultHandsonConfig :: HandsonConfig
+defaultHandsonConfig = HandsonConfig mempty 1 True True False
+
+--------------------------------------------------------------------------------
+newHandsonConfig :: [Row] -> HandsonConfig
+newHandsonConfig dt = defaultHandsonConfig { _data = dt }
 
 --------------------------------------------------------------------------------
 newHandsonTable :: HandsonConfig -> Element -> IO Handsontable
@@ -27,11 +45,11 @@ newHandsonTable HandsonConfig{..} el = hst_newHandsontable el =<< marshallCfg
     marshallCfg :: IO Object
     marshallCfg = do
       o <- create
-      toJSVal hsn_data >>= \d -> setProp "data" d o
-      toJSVal hsn_minSpareRows >>= \m ->setProp "minSpareRows" m o
-      toJSVal hsn_rowHeaders >>= \r -> setProp "rowHeaders" r o
-      toJSVal hsn_colHeaders >>= \c -> setProp "colHeaders" c o
-      toJSVal hsn_contextMenu >>= \cm -> setProp "contextMenu" cm o
+      toJSVal _data >>= \d -> setProp "data" d o
+      toJSVal minSpareRows >>= \m ->setProp "minSpareRows" m o
+      toJSVal rowHeaders >>= \r -> setProp "rowHeaders" r o
+      toJSVal colHeaders >>= \c -> setProp "colHeaders" c o
+      toJSVal contextMenu >>= \cm -> setProp "contextMenu" cm o
       return o
 
 --------------------------------------------------------------------------------
