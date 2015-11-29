@@ -23,8 +23,10 @@ library
   exposed-modules:
     Lib
     Handsontable
+    Handsontable.JQuery
   other-modules:
     Handsontable.Internal
+    Handsontable.JQuery.Internal
 
   if impl(ghcjs)
     hs-source-dirs:    src-ghcjs

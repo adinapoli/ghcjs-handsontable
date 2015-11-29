@@ -12,7 +12,7 @@ packages:
 
 - location:
     git: git@github.com:ghcjs/ghcjs-jquery.git
-    commit: d81a1fee88923194971ed4e8a52736a639080d74
+    commit: 7b25bff88c05d46b7fbfc3ae26106d112036c252
 
 extra-deps:
   - ghcjs-dom-0.2.3.0

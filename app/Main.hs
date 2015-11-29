@@ -1,17 +1,16 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
 import Handsontable
 import GHCJS.DOM
 import GHCJS.DOM.Document
+import JavaScript.JQuery as J
+import Handsontable.JQuery as J
 import Control.Monad
 
 main :: IO ()
-main = runWebGUI $ \webView -> do
+main = J.ready $ do
   putStrLn "CSV Editor demo!"
   randomData <- createSpreadsheetData 10 20
-  let cfg = newHandsonConfig randomData
-  (Just doc)  <- webViewGetDomDocument webView
-  theEl <- getElementById doc "table-example"
-  case theEl of
-    Nothing -> return ()
-    Just el -> void (newHandsonTable cfg el)
+  let cfg = disablePlugins (newHandsonConfig randomData)
+  void (J.select "#table-example" >>= J.newHandsonTable cfg)
