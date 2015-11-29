@@ -1,5 +1,4 @@
-
-# GHCJS CSV Editor
+# GHCJS Handsontable
 
 This is a playgrond to:
 

@@ -17,6 +17,7 @@ module Handsontable (
   , colHeaders
   , contextMenu
   , disablePlugins
+  , tableClassName
   -- * Internal use
   , marshalCfg
   ) where
@@ -25,7 +26,9 @@ import GHCJS.Types
 import GHCJS.Marshal
 import Handsontable.Internal
 import JavaScript.Object
+import Data.Monoid
 import GHCJS.DOM.Types
+import qualified Data.Text as T
 
 --------------------------------------------------------------------------------
 type Row = JSVal
@@ -73,6 +76,7 @@ data HandsonConfig = HandsonConfig {
   , rowHeaders   :: Bool
   , colHeaders   :: Bool
   , contextMenu  :: Bool
+  , tableClassName :: [T.Text]
   }
 
 --------------------------------------------------------------------------------
@@ -93,6 +97,7 @@ defaultHandsonConfig = HandsonConfig {
   , rowHeaders   = True
   , colHeaders   = True
   , contextMenu  = False
+  , tableClassName = mempty
   }
 
 --------------------------------------------------------------------------------
@@ -121,12 +126,17 @@ newHandsonTable cfg el = hst_newHandsontable el =<< marshalCfg cfg
 marshalCfg :: HandsonConfig -> IO Object
 marshalCfg HandsonConfig{..}= do
   o <- create
-  toJSVal _data >>= \d -> setProp "data" d o
-  toJSVal minSpareRows >>= \m ->setProp "minSpareRows" m o
-  toJSVal rowHeaders >>= \r -> setProp "rowHeaders" r o
-  toJSVal colHeaders >>= \c -> setProp "colHeaders" c o
-  toJSVal contextMenu >>= \cm -> setProp "contextMenu" cm o
+  o ..= ("data", _data)
+  o ..= ("minSpareRows", minSpareRows)
+  o ..= ("rowHeaders", rowHeaders)
+  o ..= ("colHeaders", colHeaders)
+  o ..= ("contextMenu", contextMenu)
+  o ..= ("tableClassName", tableClassName)
   return o
+
+--------------------------------------------------------------------------------
+(..=) :: (ToJSVal a) => Object -> (JSString, a) -> IO ()
+o ..= (k,v) = toJSVal v >>= flip (setProp k) o
 
 --------------------------------------------------------------------------------
 createSpreadsheetData :: Int -> Int -> IO [JSVal]
