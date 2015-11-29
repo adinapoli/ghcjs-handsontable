@@ -2,41 +2,56 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Handsontable (
-    Row
-  , HandsonConfig
+    Data
+  , HandsonOptions
   , AutoColumnSize
   , AutoRowSize
-  , CellOverride
-  , newOverride
-  , override
+  -- * Constructors
   , createSpreadsheetData
   , newHandsonTable
-  , newHandsonConfig
+  , newHandsonOptions
+  -- * Options getters & setters
+  , allowInsertColumn
+  , allowInsertRow
+  , allowInvalid
+  , allowRemoveColumn
+  , allowRemoveRow
+  , autoColumnSize
+  , autoRowSize
+  , autoWrapCol
+  , autoWrapRow
   , minSpareRows
   , rowHeaders
   , colHeaders
   , contextMenu
-  , disablePlugins
   , tableClassName
+  -- * Utilities
+  , disablePlugins
   -- * Internal use
   , marshalCfg
   ) where
 
-import GHCJS.Types
+import Data.Aeson as JSON hiding (Object)
+import Data.Aeson.TH
+import Data.Monoid
+import qualified Data.Text as T
+import GHCJS.DOM.Types
+import GHCJS.Foreign.Callback
 import GHCJS.Marshal
+import GHCJS.Prim (jsNull)
+import GHCJS.Types
 import Handsontable.Internal
 import JavaScript.Object
-import Data.Monoid
-import GHCJS.DOM.Types
-import qualified Data.Text as T
 
 --------------------------------------------------------------------------------
-type Row = JSVal
+type Data = JSVal
 
 --------------------------------------------------------------------------------
 data AutoColumnSize = AutoColumnSize {
   autoColumnSyncLimit :: Int
   }
+
+deriveToJSON defaultOptions ''AutoColumnSize
 
 --------------------------------------------------------------------------------
 defaultAutoColumnSize :: AutoColumnSize
@@ -47,20 +62,29 @@ data AutoRowSize = AutoRowSize {
   autoRowSyncLimit :: Int
   }
 
+deriveToJSON defaultOptions ''AutoRowSize
+
 --------------------------------------------------------------------------------
 defaultAutoRowSize :: AutoRowSize
 defaultAutoRowSize = AutoRowSize 1000
 
 --------------------------------------------------------------------------------
-data CellOverride = CellOverride {
-    cellOverrideRow :: Int
-  , cellOverrideCol :: Int
-  , cellOverride :: HandsonConfig
-  }
+-- |Setting true or false will enable or disable the default column headers (A, B, C).
+-- You can also define an array ['One', 'Two', 'Three', ...] or a function to define the headers.
+-- If a function is set the index of the column is passed as a parameter.
+data ColHeaders =
+    ColHeaders_Bool Bool
+  | ColHeaders_Array [T.Text]
+  | ColHeaders_Func  (JSVal -> IO ())
+
+instance ToJSVal ColHeaders where
+  toJSVal (ColHeaders_Bool b) = toJSVal b
+  toJSVal (ColHeaders_Array a) = toJSVal a
+  toJSVal (ColHeaders_Func f)  = jsval <$> asyncCallback1 f
 
 --------------------------------------------------------------------------------
-data HandsonConfig = HandsonConfig {
-    _data :: [Row]
+data HandsonOptions = HandsonOptions {
+    _data :: Data
   , allowInsertColumn :: Bool
   , allowInsertRow :: Bool
   , allowInvalid :: Bool
@@ -71,18 +95,21 @@ data HandsonConfig = HandsonConfig {
   , autoRowSize  :: Maybe AutoRowSize
   , autoWrapCol  :: Bool
   , autoWrapRow  :: Bool
-  , cell         :: [CellOverride]
+  -- , cell      Not supported yet
+  -- , cells      Not supported yet
+  -- , checkedTemplate      Not supported yet
+  -- , className      Not supported yet
+  , colHeaders   :: ColHeaders
   , minSpareRows :: Int
   , rowHeaders   :: Bool
-  , colHeaders   :: Bool
   , contextMenu  :: Bool
   , tableClassName :: [T.Text]
   }
 
 --------------------------------------------------------------------------------
-defaultHandsonConfig :: HandsonConfig
-defaultHandsonConfig = HandsonConfig {
-    _data = []
+defaultHandsonOptions :: HandsonOptions
+defaultHandsonOptions = HandsonOptions {
+    _data = jsNull
   , allowInsertColumn = True
   , allowInsertRow = True
   , allowInvalid = True
@@ -92,41 +119,41 @@ defaultHandsonConfig = HandsonConfig {
   , autoRowSize = Just defaultAutoRowSize
   , autoWrapCol  = False
   , autoWrapRow  = False
-  , cell = mempty
   , minSpareRows = 1
   , rowHeaders   = True
-  , colHeaders   = True
+  , colHeaders   = ColHeaders_Bool True
   , contextMenu  = False
   , tableClassName = mempty
   }
 
 --------------------------------------------------------------------------------
-newOverride :: Int -> Int -> HandsonConfig -> CellOverride
-newOverride = CellOverride
+newHandsonOptions :: Data -> HandsonOptions
+newHandsonOptions dt = defaultHandsonOptions { _data = dt }
 
 --------------------------------------------------------------------------------
-override :: HandsonConfig -> CellOverride -> HandsonConfig
-override cfg@HandsonConfig{..} o = cfg { cell = o : cell }
-
---------------------------------------------------------------------------------
-newHandsonConfig :: [Row] -> HandsonConfig
-newHandsonConfig dt = defaultHandsonConfig { _data = dt }
-
---------------------------------------------------------------------------------
-disablePlugins :: HandsonConfig -> HandsonConfig
+disablePlugins :: HandsonOptions -> HandsonOptions
 disablePlugins cfg = cfg { autoColumnSize = Nothing
                          , autoRowSize    = Nothing
                          }
 
 --------------------------------------------------------------------------------
-newHandsonTable :: HandsonConfig -> Element -> IO Handsontable
+newHandsonTable :: HandsonOptions -> Element -> IO Handsontable
 newHandsonTable cfg el = hst_newHandsontable el =<< marshalCfg cfg
 
 --------------------------------------------------------------------------------
-marshalCfg :: HandsonConfig -> IO Object
-marshalCfg HandsonConfig{..}= do
+marshalCfg :: HandsonOptions -> IO Object
+marshalCfg HandsonOptions{..}= do
   o <- create
   o ..= ("data", _data)
+  o ..= ("allowInsertColumn", allowInsertColumn)
+  o ..= ("allowInsertRow", allowInsertRow)
+  o ..= ("allowInvalid", allowInvalid)
+  o ..= ("allowRemoveColumn", allowRemoveColumn)
+  o ..= ("allowRemoveRow", allowRemoveRow)
+  o |.= ("autoColumnSize", autoColumnSize)
+  o |.= ("autoRowSize", autoRowSize)
+  o ..= ("autoWrapCol", autoWrapCol)
+  o ..= ("autoWrapRow", autoWrapRow)
   o ..= ("minSpareRows", minSpareRows)
   o ..= ("rowHeaders", rowHeaders)
   o ..= ("colHeaders", colHeaders)
@@ -139,7 +166,11 @@ marshalCfg HandsonConfig{..}= do
 o ..= (k,v) = toJSVal v >>= flip (setProp k) o
 
 --------------------------------------------------------------------------------
-createSpreadsheetData :: Int -> Int -> IO [JSVal]
+(|.=) :: (ToJSON a) => Object -> (JSString, a) -> IO ()
+o |.= (k,v) = toJSVal (JSON.toJSON v) >>= flip (setProp k) o
+
+--------------------------------------------------------------------------------
+createSpreadsheetData :: Int -> Int -> IO JSVal
 createSpreadsheetData r c = do
   v <- fromJSVal =<< hst_createSpreadsheetData r c
   case v of
