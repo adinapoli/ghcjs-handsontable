@@ -24,6 +24,7 @@ module Handsontable (
   , rowHeaders
   , colHeaders
   , contextMenu
+  , checkedTemplate
   , tableClassName
   -- * Utilities
   , disablePlugins
@@ -82,6 +83,14 @@ instance ToJSVal ColHeaders where
   toJSVal (ColHeaders_Array a) = toJSVal a
   toJSVal (ColHeaders_Func f)  = jsval <$> asyncCallback1 f
 
+data CheckedTemplate =
+    CheckedTemplate_Bool   Bool
+  | CheckedTemplate_String T.Text
+
+instance ToJSVal CheckedTemplate where
+  toJSVal (CheckedTemplate_Bool b) = toJSVal b
+  toJSVal (CheckedTemplate_String s) = toJSVal s
+
 --------------------------------------------------------------------------------
 data HandsonOptions = HandsonOptions {
     _data :: Data
@@ -97,7 +106,7 @@ data HandsonOptions = HandsonOptions {
   , autoWrapRow  :: Bool
   -- , cell      Not supported yet
   -- , cells      Not supported yet
-  -- , checkedTemplate      Not supported yet
+  , checkedTemplate :: CheckedTemplate
   -- , className      Not supported yet
   , colHeaders   :: ColHeaders
   , minSpareRows :: Int
@@ -123,6 +132,7 @@ defaultHandsonOptions = HandsonOptions {
   , rowHeaders   = True
   , colHeaders   = ColHeaders_Bool True
   , contextMenu  = False
+  , checkedTemplate = CheckedTemplate_Bool True
   , tableClassName = mempty
   }
 
